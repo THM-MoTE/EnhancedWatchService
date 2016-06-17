@@ -17,4 +17,5 @@ ensime*
 
 bin
 target
+build
 project/target
