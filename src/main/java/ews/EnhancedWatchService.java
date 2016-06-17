@@ -53,7 +53,9 @@ public class EnhancedWatchService {
 			Iterator<Path> iter = stream.iterator();
 			while(iter.hasNext()) {
 				Path path = iter.next();
-				if(dirFilter.test(path) && Files.isDirectory(path)) {
+				if(recursive &&
+					dirFilter.test(path) &&
+					Files.isDirectory(path)) {
 					keysToPathes.put(path.register(watcher, events), path);
 					generateWatchers(path);
 				}
