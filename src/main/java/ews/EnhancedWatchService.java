@@ -1,3 +1,8 @@
+/**
+ * Copyright (C) 2016 Nicola Justus <nicola.justus@mni.thm.de>
+ * Licensed under MIT License
+ */
+
 package ews;
 
 import java.io.IOException;

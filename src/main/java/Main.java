@@ -1,3 +1,8 @@
+/**
+ * Copyright (C) 2016 Nicola Justus <nicola.justus@mni.thm.de>
+ * Licensed under MIT License
+ */
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
