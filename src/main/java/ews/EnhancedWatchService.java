@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 public class EnhancedWatchService {
 	private final Logger log = LoggerFactory.getLogger(EnhancedWatchService.class);
-	private ExecutorService pool;
 	private final boolean recursive;
 	private final Path rootDir;
 	private Predicate<Path> fileFilter;
