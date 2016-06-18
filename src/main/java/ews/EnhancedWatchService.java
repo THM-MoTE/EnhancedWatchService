@@ -26,6 +26,15 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
+/**
+ * An enhanced WatchService based on {@link java.nio.file.WatchService WatchService}.
+ * This WatchService can handle whole directory-structures and simplifies the creation-process.
+ *
+ * @author N. Justus
+ * @version 0.1
+ * @since 0.1
+ */
 public class EnhancedWatchService {
 	private final Logger log = LoggerFactory.getLogger(EnhancedWatchService.class);
 	private final boolean recursive;
@@ -37,6 +46,14 @@ public class EnhancedWatchService {
 	private final Map<WatchKey, Path> keysToPathes;
 	private BiConsumer<Path, Kind<?>> callback;
 
+	/**
+	 * Creates a new EnhancedWatchService for the given rootDir and the given events.
+	 *
+	 * @param rootDir directory that should get observed
+	 * @param recursive set to true if you like to observe the whole directory-structure
+	 *		 			below rootDir; false for only the rootDir
+	 * @param events which events should trigger this observer?
+	 */
 	public EnhancedWatchService(Path rootDir, boolean recursive, WatchEvent.Kind<?>... events) {
 		this.recursive = recursive;
 		this.rootDir = rootDir;
@@ -44,6 +61,17 @@ public class EnhancedWatchService {
 		keysToPathes = new HashMap<>();
 	}
 	
+	/**
+	 * Starts and submits this WatchService to the given pool.
+	 *
+	 * @param pool The threadpool in which this service should run.
+	 * @param callback called for every event that occurs on the filesystem.
+	 * @param dirFilter a filter for directories. All pathes/directories that this filter accepts get observed.
+	 * @param fileFilter a filter for files. All events that happens to pathes/files that this filter accepts get pushed into the callback.
+	 * @return A future with which this service is cancellable.
+	 * @throws IOException If it's not possible to create the watchers for the directories.
+	 * 						Note: This doesn't include Exceptions that happen in the running WatchService.
+	 */
 	public Future<?> start(ExecutorService pool, BiConsumer<Path, Kind<?>> callback, Predicate<Path> dirFilter, Predicate<Path> fileFilter) throws IOException {
 		this.fileFilter = fileFilter;
 		this.dirFilter = dirFilter;
@@ -73,17 +101,20 @@ public class EnhancedWatchService {
 	private void processEvents() {
 		while(!Thread.currentThread().isInterrupted()) {
 			WatchKey key;
+			//wait for any event; stop if thread get's interrupted
 			try {
 				 key = this.watcher.take();
 			} catch(InterruptedException x) {
 		        break;
 		    }
 			
+			//handle each event
 			for(WatchEvent<?> event : key.pollEvents()) {
 				WatchEvent.Kind<?> kind = event.kind();
 				if(kind != StandardWatchEventKinds.OVERFLOW) {
 					@SuppressWarnings("unchecked")
 					WatchEvent<Path> evPath = (WatchEvent<Path>)event;
+					//relative path from event to absolute path
 			        Path relativePath = evPath.context();
 			        Path absolutePath = keysToPathes.get(key).resolve(relativePath);
 			        log.debug("Received event {} for {}", kind, absolutePath);
@@ -92,6 +123,7 @@ public class EnhancedWatchService {
 			        	callback.accept(absolutePath, kind);
 			        }
 			        
+			        //if a directory was created; add this directory to the WatchService
 			        if(recursive &&
 		        		kind == StandardWatchEventKinds.ENTRY_CREATE && 
 		        		Files.isDirectory(absolutePath)) {
