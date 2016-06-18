@@ -1,2 +1,2 @@
 # EnhancedWatchService
-A simplified WatchService for Java.
+A simplified WatchService that can handle recursive directory-structures for Java.
