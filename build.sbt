@@ -2,6 +2,7 @@ lazy val root = (project in file(".")).
   settings(
     name := "EnhancedWatchService",
     version := "0.1",
+    scalaVersion := "2.11.7",
     javacOptions ++= Seq("-source", "1.8")
   )
 
