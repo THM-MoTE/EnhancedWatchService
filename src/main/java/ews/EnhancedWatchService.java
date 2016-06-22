@@ -50,7 +50,7 @@ public class EnhancedWatchService {
 	 * Creates a new EnhancedWatchService for the given rootDir and the given events.
 	 *
 	 * @param rootDir directory that should get observed
-	 * @param recursive set to true if you like to observe the whole directory-structure
+	 * @param recursive true if you like to observe the whole directory-structure
 	 *		 			below rootDir; false for only the rootDir
 	 * @param events which events should trigger this observer?
 	 */
@@ -60,17 +60,25 @@ public class EnhancedWatchService {
 		this.events = events;
 		keysToPathes = new HashMap<>();
 	}
-	
+
 	/**
 	 * Starts and submits this WatchService to the given pool.
 	 *
 	 * @param pool The threadpool in which this service should run.
 	 * @param callback called for every event that occurs on the filesystem.
-	 * @param dirFilter a filter for directories. All pathes/directories that this filter accepts get observed.
-	 * @param fileFilter a filter for files. All events that happens to pathes/files that this filter accepts get pushed into the callback.
+	 * @param dirFilter a filter for directories. All pathes/directories that this filter
+	 *									accepts get observed.
+	 * @param fileFilter a filter for files. All events that happens to pathes/files that this
+	 *									filter accepts get pushed into the callback.
+	 *							<P>Note: Be aware that this filter is executed with path's that possibly don't exist.
+	 *									 If this WatchService should observe delete events you can't filter by
+	 *									predicates that works only for existent files. Typical example is
+	 *									{@link java.nio.file.Files#exists(Path, LinkOption...) Files.exists},
+	 *									{@link java.nio.file.Files#isDirectory(Path, LinkOption...) Files.isDirectory}
+	 *									and similar.</P>
 	 * @return A future with which this service is cancellable.
 	 * @throws IOException If it's not possible to create the watchers for the directories.
-	 * 						Note: This doesn't include Exceptions that happen in the running WatchService.
+	 * 						<P>Note: This doesn't include Exceptions that happen in the running WatchService.</P>
 	 */
 	public Future<?> start(ExecutorService pool, BiConsumer<Path, Kind<?>> callback, Predicate<Path> dirFilter, Predicate<Path> fileFilter) throws IOException {
 		this.fileFilter = fileFilter;
@@ -81,7 +89,7 @@ public class EnhancedWatchService {
 		log.debug("Generated watchers for {}", keysToPathes.values());
 		return pool.submit(() -> processEvents());
 	}
-	
+
 	private void generateWatchers(Path dir) throws IOException {
 		keysToPathes.put(dir.register(watcher, events), dir);
 		try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
@@ -97,7 +105,7 @@ public class EnhancedWatchService {
 			}
 		}
 	}
-	
+
 	private void processEvents() {
 		while(!Thread.currentThread().isInterrupted()) {
 			WatchKey key;
@@ -107,7 +115,7 @@ public class EnhancedWatchService {
 			} catch(InterruptedException x) {
 		        break;
 		    }
-			
+
 			//handle each event
 			for(WatchEvent<?> event : key.pollEvents()) {
 				WatchEvent.Kind<?> kind = event.kind();
@@ -118,14 +126,14 @@ public class EnhancedWatchService {
 			        Path relativePath = evPath.context();
 			        Path absolutePath = keysToPathes.get(key).resolve(relativePath);
 			        log.debug("Received event {} for {}", kind, absolutePath);
-			        
+
 			        if(fileFilter.test(absolutePath)) {
 			        	callback.accept(absolutePath, kind);
 			        }
-			        
+
 			        //if a directory was created; add this directory to the WatchService
 			        if(recursive &&
-		        		kind == StandardWatchEventKinds.ENTRY_CREATE && 
+		        		kind == StandardWatchEventKinds.ENTRY_CREATE &&
 		        		Files.isDirectory(absolutePath)) {
 			        	try {
 			        		log.debug("Create new watcher for directory {}", absolutePath);
@@ -147,7 +155,7 @@ public class EnhancedWatchService {
                 }
             }
 		}
-		
+
 		log.debug("Gonna die");
 	}
 }
