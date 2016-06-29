@@ -19,42 +19,47 @@ import java.util.function.Predicate;
 
 import ews.EnhancedWatchService;
 
-
 public class Main {
 
-	public static void main(String[] args) throws IOException, InterruptedException {
-		Path rootDir = Paths.get(System.getProperty("user.home")).resolve("Downloads");
+	public static void main(String[] args) throws IOException,
+			InterruptedException {
+		Path rootDir = Paths.get(System.getProperty("user.home")).resolve(
+				"Downloads");
 		WatchEvent.Kind<?>[] events = new WatchEvent.Kind<?>[] {
 				StandardWatchEventKinds.ENTRY_CREATE,
 				StandardWatchEventKinds.ENTRY_DELETE,
-				StandardWatchEventKinds.ENTRY_MODIFY
-		};
-		
+				StandardWatchEventKinds.ENTRY_MODIFY };
+
 		ExecutorService pool = Executors.newFixedThreadPool(2);
-		
-		BiConsumer<Path, Kind<?>> listener = (path, kind) -> System.out.println("file changed "+path+" with mode "+kind);
-		
+
+		BiConsumer<Path, Kind<?>> listener = (path, kind) -> System.out
+				.println("file changed " + path + " with mode " + kind);
+
 		Predicate<Path> dirFilter = path -> {
 			try {
-				return !Files.isHidden(path) &&
-						!path.endsWith("Videos") &&
-						!path.endsWith("target") &&
-						!path.endsWith("bin");
-			} catch(IOException e) { return false; }
+				return !Files.isHidden(path) && !path.endsWith("Videos")
+						&& !path.endsWith("target") && !path.endsWith("bin");
+			} catch (IOException e) {
+				return false;
+			}
 		};
-		
+
 		Predicate<Path> fileFilter = path -> {
 			try {
-				return !Files.isHidden(path) && !path.getFileName().toString().endsWith(".c");
-			} catch(IOException e) { return false; }
+				return !Files.isHidden(path)
+						&& !path.getFileName().toString().endsWith(".c");
+			} catch (IOException e) {
+				return false;
+			}
 		};
-		
-		EnhancedWatchService service = new EnhancedWatchService(rootDir, true, events);
+
+		EnhancedWatchService service = new EnhancedWatchService(rootDir, true,
+				events);
 		Future<?> future = service.start(pool, listener, dirFilter, fileFilter);
 		Thread.sleep(10000);
 		pool.shutdown();
 		future.cancel(true);
 		boolean flag = pool.awaitTermination(10, TimeUnit.SECONDS);
-		System.out.println("shutdowned "+flag);
+		System.out.println("shutdowned " + flag);
 	}
 }
