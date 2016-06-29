@@ -23,7 +23,7 @@ import ews.EnhancedWatchService;
 public class Main {
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		Path rootDir = Paths.get(System.getProperty("user.home"));
+		Path rootDir = Paths.get(System.getProperty("user.home")).resolve("Downloads");
 		WatchEvent.Kind<?>[] events = new WatchEvent.Kind<?>[] {
 				StandardWatchEventKinds.ENTRY_CREATE,
 				StandardWatchEventKinds.ENTRY_DELETE,
@@ -51,10 +51,10 @@ public class Main {
 		
 		EnhancedWatchService service = new EnhancedWatchService(rootDir, true, events);
 		Future<?> future = service.start(pool, listener, dirFilter, fileFilter);
-		Thread.sleep(1000);
-		boolean flag = pool.awaitTermination(10, TimeUnit.MINUTES);
+		Thread.sleep(10000);
 		pool.shutdown();
 		future.cancel(true);
+		boolean flag = pool.awaitTermination(10, TimeUnit.SECONDS);
 		System.out.println("shutdowned "+flag);
 	}
 }
