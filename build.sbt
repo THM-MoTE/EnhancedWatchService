@@ -1,4 +1,4 @@
-lazy val root = (project in file(".")).
+lazy val root = Project(id = "ews", base = file(".")).
   settings(
     name := "EnhancedWatchService",
     version := "0.1",
