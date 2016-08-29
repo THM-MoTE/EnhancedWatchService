@@ -7,5 +7,4 @@ lazy val root = Project(id = "ews", base = file(".")).
   )
 
 libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.21"
-libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % Test
 autoScalaLibrary := false
