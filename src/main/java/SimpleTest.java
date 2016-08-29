@@ -19,13 +19,10 @@ import java.util.function.Predicate;
 
 import ews.EnhancedWatchService;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class SimpleTest {
- @Test
- public void executionTest() throws IOException,
-			InterruptedException {
+
+ public static void executionTest() throws IOException, InterruptedException {
 
      Path rootDir = Paths.get(System.getProperty("user.home")).resolve(
 								       "Downloads");
@@ -65,6 +62,12 @@ public class SimpleTest {
      future.cancel(true);
      boolean flag = pool.awaitTermination(10, TimeUnit.SECONDS);
      System.out.println("shutdowned " + flag);
-     assertTrue(flag);
+
+     if(flag) System.out.println("shutdown successfull");
+     else System.err.println("shutdown failed");
+ }
+
+ public static void main(String args[]) throws IOException, InterruptedException {
+   executionTest();
  }
 }
