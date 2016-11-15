@@ -40,12 +40,11 @@ public class EnhancedWatchService {
 			.getLogger(EnhancedWatchService.class);
 	private final boolean recursive;
 	private final Path rootDir;
-	private Predicate<Path> fileFilter;
-	private Predicate<Path> dirFilter;
+	private PathFilter filter;
 	private WatchService watcher;
 	private final WatchEvent.Kind<?>[] events;
 	private final Map<WatchKey, Path> keysToPathes;
-	private BiConsumer<Path, Kind<?>> callback;
+	private WatchServiceListener listener;
 
 	/**
 	 * Creates a new EnhancedWatchService for the given rootDir and the given
@@ -67,48 +66,29 @@ public class EnhancedWatchService {
 		keysToPathes = new HashMap<>();
 	}
 
+
 	/**
-	 * Starts and submits this WatchService to the given pool.
-	 *
-	 * @param pool
-	 *            The threadpool in which this service should run.
-	 * @param callback
-	 *            called for every event that occurs on the filesystem.
-	 * @param dirFilter
-	 *            a filter for directories. All pathes/directories that this
-	 *            filter accepts get observed.
-	 * @param fileFilter
-	 *            a filter for files. All events that happens to pathes/files
-	 *            that this filter accepts get pushed into the callback.
-	 *            <P>
-	 *            Note: Be aware that this filter is executed with path's that
-	 *            possibly don't exist. If this WatchService should observe
-	 *            delete events you can't filter by predicates that works only
-	 *            for existent files. Typical example is
-	 *            {@link java.nio.file.Files#exists(Path, LinkOption...)
-	 *            Files.exists},
-	 *            {@link java.nio.file.Files#isDirectory(Path, LinkOption...)
-	 *            Files.isDirectory} and similar.
-	 *            </P>
-	 * @return A future with which this service is cancellable.
+	 * Creates a WatchService which monitors the rootDir from the constructor.
+	 * Calls the given listener if some event occurs and uses the given filter
+	 * for filtering accepted paths.
+	 * @param listener listener which is called if an event occurs
+	 * @param filter - filter for monitored paths
+	 * @return a runnable that a ThreadPool can execute
 	 * @throws IOException
 	 *             If it's not possible to create the watchers for the
-	 *             directories.
-	 *             <P>
-	 *             Note: This doesn't include Exceptions that happen in the
-	 *             running WatchService.
-	 *             </P>
+   *             directories.
+   *             <P>
+   *             Note: This doesn't include Exceptions that happen in the
+   *             running WatchService.
+   *             </P>
 	 */
-	public Future<?> start(ExecutorService pool,
-			BiConsumer<Path, Kind<?>> callback, Predicate<Path> dirFilter,
-			Predicate<Path> fileFilter) throws IOException {
-		this.fileFilter = fileFilter;
-		this.dirFilter = dirFilter;
-		this.watcher = FileSystems.getDefault().newWatchService();
-		this.callback = callback;
-		generateWatchers(rootDir);
-		log.debug("Generated watchers for {}", keysToPathes.values());
-		return pool.submit(() -> processEvents());
+	public Runnable setup(WatchServiceListener listener, PathFilter filter) throws IOException {
+	  this.listener = listener;
+	  this.filter = filter;
+	  this.watcher = FileSystems.getDefault().newWatchService();
+	  generateWatchers(rootDir);
+    log.debug("Generated watchers for {}", keysToPathes.values());
+    return () -> processEvents();
 	}
 
 	private void generateWatchers(Path dir) throws IOException {
@@ -117,7 +97,7 @@ public class EnhancedWatchService {
 			Iterator<Path> iter = stream.iterator();
 			while (iter.hasNext()) {
 				Path path = iter.next();
-				if (recursive && dirFilter.test(path)
+				if (recursive && filter.acceptDirectory(path)
 						&& Files.isDirectory(path)) {
 					keysToPathes.put(path.register(watcher, events), path);
 					generateWatchers(path);
@@ -148,8 +128,8 @@ public class EnhancedWatchService {
 							relativePath);
 					log.debug("Received event {} for {}", kind, absolutePath);
 
-					if (fileFilter.test(absolutePath)) {
-						callback.accept(absolutePath, kind);
+					if (filter.acceptFile(absolutePath)) {
+						listener.dispatchKind(absolutePath, kind);
 					}
 
 					// if a directory was created; add this directory to the

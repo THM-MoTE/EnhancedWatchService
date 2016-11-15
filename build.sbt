@@ -1,7 +1,7 @@
 lazy val root = Project(id = "ews", base = file(".")).
   settings(
     name := "EnhancedWatchService",
-    version := "0.1",
+    version := "0.2",
     scalaVersion := "2.11.8",
     javacOptions ++= Seq("-source", "1.8")
   )
