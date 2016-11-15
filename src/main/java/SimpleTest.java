@@ -18,6 +18,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 import ews.EnhancedWatchService;
+import ews.PathFilter;
+import ews.WatchServiceListener;
 
 
 public class SimpleTest {
@@ -33,31 +35,55 @@ public class SimpleTest {
 
      ExecutorService pool = Executors.newFixedThreadPool(2);
 
-     BiConsumer<Path, Kind<?>> listener = (path, kind) -> System.out
-	 .println("file changed " + path + " with mode " + kind);
-
-     Predicate<Path> dirFilter = path -> {
-	 try {
-	     return !Files.isHidden(path) && !path.endsWith("Videos")
-	     && !path.endsWith("target") && !path.endsWith("bin");
-	 } catch (IOException e) {
-	     return false;
-	 }
-     };
-
-     Predicate<Path> fileFilter = path -> {
-	 try {
-	     return !Files.isHidden(path)
-	     && !path.getFileName().toString().endsWith(".c");
-	 } catch (IOException e) {
-	     return false;
-	 }
-     };
-
      EnhancedWatchService service = new EnhancedWatchService(rootDir, true,
 							     events);
-     Future<?> future = service.start(pool, listener, dirFilter, fileFilter);
-     Thread.sleep(10000);
+
+     PathFilter filter = new PathFilter() {
+      @Override
+      public boolean acceptFile(Path file) {
+        try {
+          return !Files.isHidden(file)
+              && !file.getFileName().toString().endsWith(".c");
+        } catch (IOException e) {
+          return false;
+        }
+      }
+
+      @Override
+      public boolean acceptDirectory(Path directory) {
+        try {
+          return !Files.isHidden(directory) && !directory.endsWith("Videos")
+              && !directory.endsWith("target") && !directory.endsWith("bin");
+        } catch (IOException e) {
+          return false;
+        }
+      }
+    };
+
+
+    WatchServiceListener listener = new WatchServiceListener() {
+      @Override
+      public void modified(Path path) {
+        System.out
+        .println("file modified " + path);
+      }
+
+      @Override
+      public void deleted(Path path) {
+        System.out
+        .println("file deleted " + path);
+      }
+
+      @Override
+      public void created(Path path) {
+        System.out
+        .println("file created " + path);
+      }
+    };
+
+     Runnable runnable = service.setup(listener, filter);
+     Future<?> future = pool.submit(runnable);
+     Thread.sleep(60_000);
      pool.shutdown();
      future.cancel(true);
      boolean flag = pool.awaitTermination(10, TimeUnit.SECONDS);
