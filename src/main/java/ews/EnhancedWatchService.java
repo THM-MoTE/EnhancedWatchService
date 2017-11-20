@@ -128,7 +128,7 @@ public class EnhancedWatchService {
 							relativePath);
 					log.debug("Received event {} for {}", kind, absolutePath);
 
-					if (filter.acceptFile(absolutePath)) {
+					if (filter.acceptFile(absolutePath) || filter.acceptDirectory(absolutePath)) {
 						listener.dispatchKind(absolutePath, kind);
 					}
 
